@@ -4,7 +4,7 @@
 #
 # Env:  WALLET (required)  POOL (default 127.0.0.1)  PORT (default 7000)
 #       ASCEND_RT_VISIBLE_DEVICES (comma list; default = all NPUs)  WORKER (default npu)
-#       BIN (default: first of ./build/ascend_prl_kryptex, _k1, ascend_prl that exists)
+#       BIN (default: locally built ./build/ascend_prl_kryptex)
 #       PRL_PIN_AVOID_RE (regex of already-running miners whose nodes to avoid; default below)
 set -u
 cd "$(dirname "$0")/.."
@@ -17,13 +17,17 @@ PASS="${PASS:-x}"          # pool password field; some pools encode difficulty h
 declare -A PINMAP
 if [ -n "${PRL_PIN_MAP:-}" ]; then for kv in $PRL_PIN_MAP; do PINMAP[${kv%%:*}]=${kv#*:}; done; fi
 if [ -z "${BIN:-}" ]; then
-  for cand in ./build/ascend_prl_kryptex ./build/ascend_prl_k1 ./build/ascend_prl; do
+  for cand in ./build/ascend_prl_kryptex ./build/ascend_prl_k1; do
     [ -x "$cand" ] && { BIN="$cand"; break; }
   done
   BIN="${BIN:-./build/ascend_prl_kryptex}"
 fi
-[ -x "$BIN" ] || { echo "miner binary not found: $BIN (build it, or run scripts/get_release.sh)"; exit 1; }
-source /usr/local/Ascend/cann-*/set_env.sh 2>/dev/null
+[ -x "$BIN" ] || { echo "miner binary not found: $BIN (run bash scripts/build.sh)"; exit 1; }
+CANN_HOME="${CANN_HOME:-/usr/local/Ascend/cann-9.0.0}"
+if [ -r "$CANN_HOME/set_env.sh" ]; then
+  # Explicitly load the intended runtime, never select a random installed CANN.
+  source "$CANN_HOME/set_env.sh"
+fi
 
 if [ -n "${ASCEND_RT_VISIBLE_DEVICES:-}" ]; then
   IFS=',' read -ra DEVS <<< "$ASCEND_RT_VISIBLE_DEVICES"

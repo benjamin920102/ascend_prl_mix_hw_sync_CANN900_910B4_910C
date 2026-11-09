@@ -54,7 +54,7 @@ static void bind_root(const uint8_t root[32], uint32_t dim, const uint8_t salt[3
     prl_blake3_keyed_64_direct(salt, msg, out);
 }
 
-#define CERT_LEGACY 0
+#define CERT_UNSALTED 0
 #define CERT_SALTED 1
 
 static void salt_roots(int cert_mode, const uint8_t rootA[32], const uint8_t rootB[32],
@@ -665,7 +665,7 @@ int prep_from_ab(const int8_t *A, const int8_t *B, const uint8_t *key,
     calc_mk(A, m * k, key, rootA);
     calc_mk(B, n * k, key, rootB);
     uint8_t saltedA[32], saltedB[32];
-    salt_roots(cert_version >= 3 ? CERT_SALTED : CERT_LEGACY,
+    salt_roots(cert_version >= 3 ? CERT_SALTED : CERT_UNSALTED,
                rootA, rootB, (uint32_t)m, (uint32_t)n, saltedA, saltedB);
     blake3_hasher h;
     blake3_hasher_init(&h); blake3_hasher_update(&h, key, 32);
@@ -704,7 +704,7 @@ int prep_random(uint64_t seed, int8_t *A, int8_t *B, const uint8_t *key,
     memset(A, 0, (size_t)(m * k));
     memset(B, 0, (size_t)(n * k));
 
-    int cert_mode = cert_version >= 3 ? CERT_SALTED : CERT_LEGACY;
+    int cert_mode = cert_version >= 3 ? CERT_SALTED : CERT_UNSALTED;
     return prep_random_impl(seed, A, B, key, m, n, k, A_noised, Bt_noised,
                             EAL, EBR, rootA, rootB, commitA, commitB, nt, 0, cert_mode);
 }
@@ -717,7 +717,7 @@ int prep_random_bt(uint64_t seed, int8_t *A, int8_t *B, const uint8_t *key,
     memset(A, 0, (size_t)(m * k));
     memset(B, 0, (size_t)(n * k));
 
-    int cert_mode = cert_version >= 3 ? CERT_SALTED : CERT_LEGACY;
+    int cert_mode = cert_version >= 3 ? CERT_SALTED : CERT_UNSALTED;
     return prep_random_impl(seed, A, B, key, m, n, k, A_noised, bt_packed,
                             EAL, EBR, rootA, rootB, commitA, commitB, nt, 1, cert_mode);
 }
@@ -733,7 +733,7 @@ static int prep_b_side_impl(uint64_t seed, int8_t *B, const uint8_t *key,
     stamp_seed(B, n * k, seed);
     calc_mk_seed_stamp(B, n * k, key, rootB);
 
-    int cert_mode = cert_version >= 3 ? CERT_SALTED : CERT_LEGACY;
+    int cert_mode = cert_version >= 3 ? CERT_SALTED : CERT_UNSALTED;
     uint8_t saltedB[32];
     if (cert_mode == CERT_SALTED) bind_root(rootB, (uint32_t)n, SEED_SALT_B, saltedB);
     else memcpy(saltedB, rootB, 32);
@@ -766,7 +766,7 @@ static int prep_a_side_impl(uint64_t seed, int8_t *A, const uint8_t *key, const 
     stamp_seed(A, m * k, seed);
     calc_mk_seed_stamp(A, m * k, key, rootA);
 
-    int cert_mode = cert_version >= 3 ? CERT_SALTED : CERT_LEGACY;
+    int cert_mode = cert_version >= 3 ? CERT_SALTED : CERT_UNSALTED;
     uint8_t saltedA[32];
     if (cert_mode == CERT_SALTED) bind_root(rootA, (uint32_t)m, SEED_SALT_A, saltedA);
     else memcpy(saltedA, rootA, 32);
@@ -823,7 +823,7 @@ int prep_random_reuse(uint64_t seed, int8_t *A, int8_t *B, const uint8_t *key,
                 int nt, int cert_version) {
     return prep_random_impl(seed, A, B, key, m, n, k, A_noised, Bt_noised,
                             EAL, EBR, rootA, rootB, commitA, commitB, nt, 0,
-                            cert_version >= 3 ? CERT_SALTED : CERT_LEGACY);
+                            cert_version >= 3 ? CERT_SALTED : CERT_UNSALTED);
 }
 
 int prep_random_bt_reuse(uint64_t seed, int8_t *A, int8_t *B, const uint8_t *key,
@@ -833,5 +833,5 @@ int prep_random_bt_reuse(uint64_t seed, int8_t *A, int8_t *B, const uint8_t *key
                 int nt, int cert_version) {
     return prep_random_impl(seed, A, B, key, m, n, k, A_noised, bt_packed,
                             EAL, EBR, rootA, rootB, commitA, commitB, nt, 1,
-                            cert_version >= 3 ? CERT_SALTED : CERT_LEGACY);
+                            cert_version >= 3 ? CERT_SALTED : CERT_UNSALTED);
 }
